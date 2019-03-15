@@ -26,7 +26,7 @@ class CommandGateway(private val rabbitTemplate: RabbitTemplate,
     @Bean
     fun commandGatewayExchange() = DirectExchange(COMMAND_GATEWAY_EXCHANGE)
 
-    fun onApplicationReadyEvent(packageName: String){
+    fun onApplicationReadyEvent(packageName: String) {
         val reflections = Reflections(packageName)
         val classes = reflections.getSubTypesOf(Commandable::class.java)
         classes.forEach {
@@ -52,13 +52,21 @@ class CommandGateway(private val rabbitTemplate: RabbitTemplate,
     @PreDestroy
     fun onDestroy() {
         declaredBindings.forEach {
-            amqpAdmin.removeBinding(it)
-            log.info("${it.routingKey} named binding is deleted from RabbitMq successfully")
+            try {
+                amqpAdmin.removeBinding(it)
+                log.info("${it.routingKey} named binding is deleted from RabbitMq successfully")
+            } catch (ex: Exception) {
+                log.error(ex.message)
+            }
         }
 
         declaredQueues.forEach {
-            amqpAdmin.deleteQueue(it.name)
-            log.info("${it.name} named queue is deleted from RabbitMq successfully")
+            try {
+                amqpAdmin.deleteQueue(it.name)
+                log.info("${it.name} named queue is deleted from RabbitMq successfully")
+            } catch (ex: Exception) {
+                log.error(ex.message)
+            }
         }
 
         amqpAdmin.deleteExchange(COMMAND_GATEWAY_EXCHANGE)
