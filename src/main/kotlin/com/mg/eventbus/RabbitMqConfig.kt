@@ -1,19 +1,15 @@
 package com.mg.eventbus
 
-import org.springframework.amqp.rabbit.annotation.RabbitListener
+import org.springframework.amqp.core.AmqpAdmin
 import org.springframework.amqp.rabbit.connection.ConnectionFactory
+import org.springframework.amqp.rabbit.core.RabbitAdmin
 import org.springframework.amqp.rabbit.core.RabbitTemplate
+import org.springframework.amqp.rabbit.listener.RabbitListenerEndpointRegistry
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter
 import org.springframework.context.annotation.Bean
-import org.springframework.context.annotation.Configuration
 
 
 abstract class RabbitMqConfig {
-
-    companion object {
-        const val QUEUE_ORDER_ALL = "order.all"
-    }
-
 
     @Bean
     open fun messageConverter() = Jackson2JsonMessageConverter()
@@ -25,9 +21,14 @@ abstract class RabbitMqConfig {
         return rabbitTemplate
     }
 
-    @RabbitListener(queues = [QUEUE_ORDER_ALL])
-    fun <T> consumeOrderAll(message: T) {
-        println(message)
+    @Bean
+    open fun amqpAdmin(connectionFactory: ConnectionFactory): AmqpAdmin {
+        return RabbitAdmin(connectionFactory)
+    }
+
+    @Bean
+    open fun registry(): RabbitListenerEndpointRegistry {
+        return RabbitListenerEndpointRegistry()
     }
 
 }
