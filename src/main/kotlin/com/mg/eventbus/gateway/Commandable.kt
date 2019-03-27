@@ -1,3 +1,7 @@
 package com.mg.eventbus.gateway
 
-interface Commandable
+import java.util.*
+
+abstract class Commandable {
+    var uuid: UUID = UUID.randomUUID()
+}
