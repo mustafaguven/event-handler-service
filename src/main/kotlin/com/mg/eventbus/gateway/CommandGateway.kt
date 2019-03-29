@@ -31,34 +31,51 @@ class CommandGateway(private val rabbitTemplate: RabbitTemplate,
         private const val MAX_TRYING = 100
         val log = logger(this)
         const val COMMAND_GATEWAY_EXCHANGE = "COMMAND_GATEWAY_EXCHANGE"
+        const val QUEUE_CLUSTER_ID: String = "Commands"
+        const val QUEUE_CLUSTER_ROUTE_KEY = QUEUE_CLUSTER_ID.plus(".*")
     }
 
     @Bean
-    fun commandGatewayExchange() = DirectExchange(COMMAND_GATEWAY_EXCHANGE)
+    fun commandGatewayExchange() = TopicExchange(COMMAND_GATEWAY_EXCHANGE)
+
+    fun prepareQueueName(simpleName: String) = QUEUE_CLUSTER_ID.plus(".").plus(simpleName)
 
     fun onApplicationReadyEvent(packageName: String) {
         val reflections = Reflections(packageName)
         val classes = reflections.getSubTypesOf(Commandable::class.java)
+        if (amqpAdmin.getQueueProperties(QUEUE_CLUSTER_ID) == null) {
+            createQueue(QUEUE_CLUSTER_ID, QUEUE_CLUSTER_ROUTE_KEY)
+        }
         classes.forEach {
-            val queueName = it.simpleName
-            val queue = Queue(queueName)
-            val binding = BindingBuilder.bind(queue).to(commandGatewayExchange()).with(queueName)
-            amqpAdmin.declareQueue(queue)
-            amqpAdmin.declareBinding(binding)
-            declaredQueues.add(queue)
-            declaredBindings.add(binding)
-            log.info("$queueName named queue is created on RabbitMq successfully")
-            log.info("$queueName named routing key is created on RabbitMq successfully")
+            val queueName = prepareQueueName(it.simpleName)
+            createQueue(queueName)
         }
     }
 
+    private fun createQueue(queueName: String, bindingName: String = queueName) {
+        val queue = Queue(queueName)
+        val binding = BindingBuilder.bind(queue).to(commandGatewayExchange()).with(bindingName)
+        amqpAdmin.declareQueue(queue)
+        amqpAdmin.declareBinding(binding)
+        declaredQueues.add(queue)
+        declaredBindings.add(binding)
+        log.info("$queueName named queue is created on RabbitMq successfully")
+        log.info("$queueName named routing key is created on RabbitMq successfully")
+    }
+
     private fun <T : Commandable> convertAndSend(t: T) {
-        rabbitTemplate.convertAndSend(COMMAND_GATEWAY_EXCHANGE, t.javaClass.simpleName, t)
-        log.info("message sent to ${t.javaClass.simpleName} successfully")
+        val queueName = prepareQueueName(t.javaClass.simpleName)
+        rabbitTemplate.convertAndSend(COMMAND_GATEWAY_EXCHANGE, queueName, t)
+        log.info("message sent to $queueName successfully")
     }
 
     fun onHandle(command: Commandable, func: () -> Any) {
-        commandCache[command.uuid] = func()
+        try {
+            val result = func()
+            commandCache[command.uuid] = result
+        } catch (ex: Exception) {
+            log.error(ex.message)
+        }
     }
 
     fun send(command: Commandable) = CompletableFuture.supplyAsync<ResponseEntity<BaseResponse>> {
@@ -70,7 +87,7 @@ class CommandGateway(private val rabbitTemplate: RabbitTemplate,
                 break
             }
             if (trying > MAX_TRYING) {
-                return@supplyAsync returnFailResponse(CommandTimeoutException(INTERVAL * MAX_TRYING))
+                return@supplyAsync returnFailResponse(CommandTimeoutException(command, INTERVAL * MAX_TRYING))
             }
             Thread.sleep(INTERVAL)
         }

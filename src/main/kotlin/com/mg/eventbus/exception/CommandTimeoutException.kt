@@ -1,4 +1,6 @@
 package com.mg.eventbus.exception
 
-class CommandTimeoutException(timeout: Long) :
-        Exception("Command is not processed in given timeout duration ($timeout milliseconds)")
+import com.mg.eventbus.gateway.Commandable
+
+class CommandTimeoutException(command: Commandable, timeout: Long) :
+        Exception("Command (${command.javaClass.simpleName}: ${command.uuid}) is not processed in given timeout duration ($timeout milliseconds)")
