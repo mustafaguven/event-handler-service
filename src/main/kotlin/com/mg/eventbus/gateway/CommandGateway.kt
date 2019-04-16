@@ -3,7 +3,6 @@ package com.mg.eventbus.gateway
 import com.mg.eventbus.cache.LRUCache
 import com.mg.eventbus.exception.CommandTimeoutException
 import com.mg.eventbus.inline.logger
-import com.mg.eventbus.inline.whenNotNull
 import com.mg.eventbus.response.BaseResponse
 import lombok.extern.slf4j.Slf4j
 import org.reflections.Reflections
@@ -32,20 +31,21 @@ class CommandGateway(private val rabbitTemplate: RabbitTemplate,
         private const val MAX_TRYING = 100
         val log = logger(this)
         const val COMMAND_GATEWAY_EXCHANGE = "COMMAND_GATEWAY_EXCHANGE"
-        const val QUEUE_CLUSTER_ID: String = "Commands"
-        const val QUEUE_CLUSTER_ROUTE_KEY = QUEUE_CLUSTER_ID.plus(".*")
+        const val EVENT_GATEWAY_EXCHANGE = "EVENT_GATEWAY_EXCHANGE"
+        const val QUEUE_COMMAND_CLUSTER_ID: String = "Commands"
+        const val QUEUE_COMMAND_CLUSTER_ROUTE_KEY = QUEUE_COMMAND_CLUSTER_ID.plus(".*")
     }
 
     @Bean
     fun commandGatewayExchange() = TopicExchange(COMMAND_GATEWAY_EXCHANGE)
 
-    fun prepareQueueName(simpleName: String) = QUEUE_CLUSTER_ID.plus(".").plus(simpleName)
+    fun prepareQueueName(simpleName: String) = QUEUE_COMMAND_CLUSTER_ID.plus(".").plus(simpleName)
 
     fun onApplicationReadyEvent(packageName: String) {
         val reflections = Reflections(packageName)
         val classes = reflections.getSubTypesOf(Commandable::class.java)
-        if (amqpAdmin.getQueueProperties(QUEUE_CLUSTER_ID) == null) {
-            createQueue(QUEUE_CLUSTER_ID, QUEUE_CLUSTER_ROUTE_KEY)
+        if (amqpAdmin.getQueueProperties(QUEUE_COMMAND_CLUSTER_ID) == null) {
+            createQueue(QUEUE_COMMAND_CLUSTER_ID, QUEUE_COMMAND_CLUSTER_ROUTE_KEY)
         }
         classes.forEach {
             val queueName = prepareQueueName(it.simpleName)
@@ -91,6 +91,10 @@ class CommandGateway(private val rabbitTemplate: RabbitTemplate,
         }
         val result = commandCache[command.uuid]
         return@supplyAsync if (result is Throwable) returnFailResponse(result) else returnSuccessResponse(command)
+    }
+
+    fun publishEvent(){
+
     }
 
     private fun returnSuccessResponse(command: Commandable): ResponseEntity<BaseResponse> {
