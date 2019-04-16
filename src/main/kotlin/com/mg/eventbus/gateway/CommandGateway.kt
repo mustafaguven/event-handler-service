@@ -90,7 +90,7 @@ class CommandGateway(private val rabbitTemplate: RabbitTemplate,
             Thread.sleep(INTERVAL)
         }
         val result = commandCache[command.uuid]
-        return@supplyAsync if (result is Exception) returnFailResponse(result) else returnSuccessResponse(command)
+        return@supplyAsync if (result is Throwable) returnFailResponse(result) else returnSuccessResponse(command)
     }
 
     private fun returnSuccessResponse(command: Commandable): ResponseEntity<BaseResponse> {
@@ -100,7 +100,7 @@ class CommandGateway(private val rabbitTemplate: RabbitTemplate,
         return ResponseEntity.ok(response)
     }
 
-    private fun returnFailResponse(ex: Exception): ResponseEntity<BaseResponse> {
+    private fun returnFailResponse(ex: Throwable): ResponseEntity<BaseResponse> {
         val response = BaseResponse()
         response.status = 0
         response.message = ex.message
