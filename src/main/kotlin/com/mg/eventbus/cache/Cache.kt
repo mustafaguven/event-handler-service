@@ -1,13 +1,13 @@
 package com.mg.eventbus.cache
 
-interface Cache {
+interface Cache<T> {
     val size: Int
 
-    operator fun set(key: Any, value: Any)
+    operator fun set(key: Any, value: T)
 
-    operator fun get(key: Any): Any?
+    operator fun get(key: Any): T?
 
-    fun remove(key: Any): Any?
+    fun remove(key: Any): T?
 
     fun clear()
 }

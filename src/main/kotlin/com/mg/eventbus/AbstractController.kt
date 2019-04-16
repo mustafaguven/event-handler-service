@@ -13,6 +13,9 @@ abstract class AbstractController : ResourceProcessor<RepositoryLinksResource> {
 
     companion object {
         val log = logger(this)
+        const val POST = "POST"
+        const val DELETE = "DELETE"
+        const val GET = "GET"
     }
 
 }

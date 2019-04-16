@@ -2,7 +2,7 @@ package com.mg.eventbus.gateway
 
 import java.util.*
 
-abstract class Commandable {
+abstract class Commandable(val entity: Any?) {
     val uuid: UUID = UUID.randomUUID()
 
     companion object {
@@ -10,3 +10,5 @@ abstract class Commandable {
     }
 
 }
+
+interface CommandEntity

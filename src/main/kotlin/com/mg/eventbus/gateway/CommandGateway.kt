@@ -3,6 +3,7 @@ package com.mg.eventbus.gateway
 import com.mg.eventbus.cache.LRUCache
 import com.mg.eventbus.exception.CommandTimeoutException
 import com.mg.eventbus.inline.logger
+import com.mg.eventbus.inline.whenNotNull
 import com.mg.eventbus.response.BaseResponse
 import lombok.extern.slf4j.Slf4j
 import org.reflections.Reflections
@@ -22,7 +23,7 @@ import javax.annotation.PreDestroy
 class CommandGateway(private val rabbitTemplate: RabbitTemplate,
                      val amqpAdmin: AmqpAdmin) {
 
-    private val commandCache = LRUCache()
+    private val commandCache = LRUCache<Any>()
     private val declaredQueues: HashSet<Queue> by lazy { HashSet<Queue>() }
     private val declaredBindings: HashSet<Binding> by lazy { HashSet<Binding>() }
 
@@ -70,11 +71,8 @@ class CommandGateway(private val rabbitTemplate: RabbitTemplate,
     }
 
     fun onHandle(command: Commandable, func: () -> Any) {
-        try {
-            val result = func()
-            commandCache[command.uuid] = result
-        } catch (ex: Exception) {
-            log.error(ex.message)
+        if (command.entity != null) {
+            commandCache[command.uuid] = func()
         }
     }
 
@@ -91,7 +89,8 @@ class CommandGateway(private val rabbitTemplate: RabbitTemplate,
             }
             Thread.sleep(INTERVAL)
         }
-        return@supplyAsync returnSuccessResponse(command)
+        val result = commandCache[command.uuid]
+        return@supplyAsync if (result is Exception) returnFailResponse(result) else returnSuccessResponse(command)
     }
 
     private fun returnSuccessResponse(command: Commandable): ResponseEntity<BaseResponse> {

@@ -1,6 +1,6 @@
 package com.mg.eventbus.cache
 
-class LRUCache(private val delegate: Cache = PerpetualCache(), private val minimalSize: Int = DEFAULT_SIZE) : Cache {
+class LRUCache<T>(private val delegate: Cache<T> = PerpetualCache(), private val minimalSize: Int = DEFAULT_SIZE) : Cache<T> {
     private val keyMap = object : LinkedHashMap<Any, Any>(minimalSize, .75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Any, Any>): Boolean {
             val tooManyCachedItems = size > minimalSize
@@ -14,14 +14,14 @@ class LRUCache(private val delegate: Cache = PerpetualCache(), private val minim
     override val size: Int
         get() = delegate.size
 
-    override fun set(key: Any, value: Any) {
+    override fun set(key: Any, value: T) {
         delegate[key] = value
         cycleKeyMap(key)
     }
 
     override fun remove(key: Any) = delegate.remove(key)
 
-    override fun get(key: Any): Any? {
+    override fun get(key: Any): T? {
         keyMap[key]
         return delegate[key]
     }

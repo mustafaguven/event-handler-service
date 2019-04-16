@@ -1,12 +1,12 @@
 package com.mg.eventbus.cache
 
-class PerpetualCache : Cache {
-    private val cache = HashMap<Any, Any>()
+class PerpetualCache<T> : Cache<T> {
+    private val cache = HashMap<Any, T>()
 
     override val size: Int
         get() = cache.size
 
-    override fun set(key: Any, value: Any) {
+    override fun set(key: Any, value: T) {
         this.cache[key] = value
     }
 
