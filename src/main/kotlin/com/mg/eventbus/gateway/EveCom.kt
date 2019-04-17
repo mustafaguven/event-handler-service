@@ -54,9 +54,7 @@ class EveCom(private val rabbitTemplate: RabbitTemplate,
 
     private fun prepareMQForCommand(reflections: Reflections) {
         val classes = reflections.getSubTypesOf(Commandable::class.java)
-        if (amqpAdmin.getQueueProperties(QUEUE_COMMAND_CLUSTER_ID) == null) {
-            createQueue(QUEUE_COMMAND_CLUSTER_ID, QUEUE_COMMAND_CLUSTER_ROUTE_KEY) { commandExchange() }
-        }
+        createQueue(QUEUE_COMMAND_CLUSTER_ID, QUEUE_COMMAND_CLUSTER_ROUTE_KEY) { commandExchange() }
         classes.forEach {
             val queueName = prepareQueueName(QUEUE_COMMAND_CLUSTER_ID, it.simpleName)
             createQueue(queueName) {
@@ -67,10 +65,7 @@ class EveCom(private val rabbitTemplate: RabbitTemplate,
 
     private fun prepareMQForEvent(reflections: Reflections) {
         val classes = reflections.getSubTypesOf(Eventable::class.java)
-        if (amqpAdmin.getQueueProperties(QUEUE_EVENT_CLUSTER_ID) == null) {
-            createQueue(QUEUE_EVENT_CLUSTER_ID, QUEUE_EVENT_CLUSTER_ROUTE_KEY) { eventExchange() }
-        }
-
+        createQueue(QUEUE_EVENT_CLUSTER_ID, QUEUE_EVENT_CLUSTER_ROUTE_KEY) { eventExchange() }
         classes.forEach {
             val queueName = prepareQueueName(QUEUE_EVENT_CLUSTER_ID, it.simpleName)
             createQueue(queueName) {
@@ -80,14 +75,17 @@ class EveCom(private val rabbitTemplate: RabbitTemplate,
     }
 
     private fun createQueue(queueName: String, bindingName: String = queueName, exchangeFunc: () -> TopicExchange) {
-        val queue = Queue(queueName)
-        val binding = BindingBuilder.bind(queue).to(exchangeFunc()).with(bindingName)
-        amqpAdmin.declareQueue(queue)
-        amqpAdmin.declareBinding(binding)
-        declaredQueues.add(queue)
-        declaredBindings.add(binding)
-        log.info("$queueName named queue is created on RabbitMq successfully")
-        log.info("$queueName named routing key is created on RabbitMq successfully")
+        if (amqpAdmin.getQueueProperties(queueName) == null) {
+            val queue = Queue(queueName)
+            val binding = BindingBuilder.bind(queue).to(exchangeFunc()).with(bindingName)
+            amqpAdmin.declareQueue(queue)
+            amqpAdmin.declareBinding(binding)
+/*            declaredQueues.add(queue)
+            declaredBindings.add(binding)*/
+            log.info("$queueName named queue is created on RabbitMq successfully")
+            log.info("$queueName named routing key is created on RabbitMq successfully")
+        }
+
     }
 
     private fun <T : Commandable> convertAndSendCommand(t: T) {
@@ -170,8 +168,9 @@ class EveCom(private val rabbitTemplate: RabbitTemplate,
 
         amqpAdmin.deleteExchange(EXCHANGE_EVENT_GATEWAY)
         log.info("$EXCHANGE_EVENT_GATEWAY named exchange is deleted from RabbitMq successfully")
-*/
+
         declaredQueues.clear()
         declaredBindings.clear()
+        */
     }
 }
