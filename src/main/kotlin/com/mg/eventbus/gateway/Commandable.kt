@@ -7,6 +7,6 @@ abstract class Commandable(val entity: Any?) {
 
     companion object {
         const val ENTITY = "entity"
-        const val QUEUE_COMMAND_CLUSTER_ID: String = CommandGateway.QUEUE_COMMAND_CLUSTER_ID.plus(".")
+        const val QUEUE_COMMAND_CLUSTER_ID: String = EveCom.QUEUE_COMMAND_CLUSTER_ID.plus(".")
     }
 }
