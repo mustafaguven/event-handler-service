@@ -33,8 +33,8 @@ class EveCom(val amqpAdmin: AmqpAdmin,
 
     fun onApplicationReadyEvent(packageName: String) {
         val reflections = Reflections(packageName)
-        commandMQConfig.build(reflections)
-        eventMQConfig.build(reflections)
+        commandMQConfig.build<Commandable>(reflections)
+        eventMQConfig.build<Eventable>(reflections)
     }
 
     private fun <T : Commandable> convertAndSendCommand(t: T) {
@@ -51,7 +51,7 @@ class EveCom(val amqpAdmin: AmqpAdmin,
         }
     }
 
-    fun sendCommand(command: Commandable) = CompletableFuture.supplyAsync<ResponseEntity<BaseResponse>> {
+    fun sendCommand(command: Commandable) = CompletableFuture.supplyAsync<ResponseEntity<BaseResponse<Any>>> {
         convertAndSendCommand(command)
         var trying = 0
         while (true) {
@@ -72,30 +72,24 @@ class EveCom(val amqpAdmin: AmqpAdmin,
         convertAndSendEvent(event)
     }
 
-    private fun returnSuccessResponse(command: Commandable): ResponseEntity<BaseResponse> {
-        val response = BaseResponse()
-        response.status = 1
-        response.data = commandCache[command.uuid]
-        return ResponseEntity.ok(response)
-    }
+    private fun returnSuccessResponse(command: Commandable): ResponseEntity<BaseResponse<Any>> =
+            ResponseEntity.ok(BaseResponse(status = BaseResponse.SUCCESS, data = commandCache[command.uuid]))
 
-    private fun returnFailResponse(ex: Throwable): ResponseEntity<BaseResponse> {
-        val response = BaseResponse()
-        response.status = 0
-        response.message = ex.message
-        return ResponseEntity.ok(response)
-    }
+
+    private fun returnFailResponse(ex: Throwable): ResponseEntity<BaseResponse<Any>> =
+            ResponseEntity.ok(BaseResponse(status = BaseResponse.FAIL, message = ex.message))
+
 
     private fun isCommandDone(command: Commandable) = commandCache[command.uuid] != null
 
     @PreDestroy
     fun onDestroy() {
-//        commandMQConfig.deleteDeclaredBindings()
-//        commandMQConfig.deleteDeclaredQueues()
-//        commandMQConfig.deleteExchange()
-//
-//        eventMQConfig.deleteDeclaredBindings()
-//        eventMQConfig.deleteDeclaredQueues()
-//        eventMQConfig.deleteExchange()
+/*        commandMQConfig.deleteDeclaredBindings()
+        commandMQConfig.deleteDeclaredQueues()
+        commandMQConfig.deleteExchange()
+
+        eventMQConfig.deleteDeclaredBindings()
+        eventMQConfig.deleteDeclaredQueues()
+        eventMQConfig.deleteExchange()*/
     }
 }

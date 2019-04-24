@@ -1,12 +1,12 @@
 package com.mg.eventbus.mq
 
-import com.mg.eventbus.gateway.Commandable
 import com.mg.eventbus.gateway.Fireable
 import com.mg.eventbus.inline.logger
 import org.reflections.Reflections
 import org.springframework.amqp.core.*
+import org.springframework.amqp.core.Queue
 import org.springframework.amqp.rabbit.core.RabbitTemplate
-import java.util.HashSet
+import java.util.*
 
 abstract class MQConfig(protected val amqpAdmin: AmqpAdmin, val rabbitTemplate: RabbitTemplate) {
 
@@ -54,15 +54,18 @@ abstract class MQConfig(protected val amqpAdmin: AmqpAdmin, val rabbitTemplate: 
 
     fun getPreparedQueueName(clzName: String): String = getQueueClusterIdWithSub().plus(clzName)
 
-    fun <T : Fireable> convertAndSend(t: T){
+    fun <T : Fireable> convertAndSend(t: T) {
         val queueName = getPreparedQueueName(t.javaClass.simpleName)
         rabbitTemplate.convertAndSend(exchangeGatewayName, queueName, t)
         log.info("command sent to $queueName successfully")
     }
 
-    abstract fun build(reflections: Reflections)
+    inline fun <reified T> build(reflections: Reflections) {
+        val classes = reflections.getSubTypesOf(T::class.java)
+        buildAmqp(classes)
+    }
 
-    protected fun <T> buildAmqp(classes: MutableSet<Class<out T>>) {
+    fun <T> buildAmqp(classes: MutableSet<Class<out T>>) {
         createQueue()
         classes.forEach {
             createQueue(getPreparedQueueName(it.simpleName))

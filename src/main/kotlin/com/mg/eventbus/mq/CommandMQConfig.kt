@@ -1,10 +1,6 @@
 package com.mg.eventbus.mq
 
 import com.mg.eventbus.Qualifiers
-import com.mg.eventbus.gateway.Commandable
-import com.mg.eventbus.gateway.EveCom
-import com.mg.eventbus.gateway.Fireable
-import org.reflections.Reflections
 import org.springframework.amqp.core.AmqpAdmin
 import org.springframework.amqp.core.TopicExchange
 import org.springframework.amqp.rabbit.core.RabbitTemplate
@@ -29,9 +25,6 @@ class CommandMQConfig(amqpAdmin: AmqpAdmin, rabbitTemplate: RabbitTemplate) : MQ
 
     override fun getExchange() = commandExchange()
 
-    override fun build(reflections: Reflections) {
-        val classes = reflections.getSubTypesOf(Commandable::class.java)
-        buildAmqp(classes)
-    }
+
 
 }
